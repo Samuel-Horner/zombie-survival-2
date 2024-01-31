@@ -55,7 +55,8 @@ class GLCanvas {
             },
             uniform_loc: {
                 res_loc: this.gl.getUniformLocation(shader_program, "u_res"),
-                cam_loc: this.gl.getUniformLocation(shader_program, "cam_pos")
+                cam_loc: this.gl.getUniformLocation(shader_program, "cam_pos"),
+                time_loc: this.gl.getUniformLocation(shader_program, "u_time")
             }
         };
         this.gl.useProgram(this.program.program);
@@ -118,6 +119,7 @@ class GLCanvas {
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
         this.gl.uniform1f(this.program.uniform_loc.res_loc, this.canvas.width);
+        this.gl.uniform1f(this.program.uniform_loc.time_loc, time);
         this.gl.uniform2f(this.program.uniform_loc.cam_loc, this.cam.x, this.cam.y);
 
         this.gl.drawElements(this.gl.TRIANGLES, this.indices_length, this.gl.UNSIGNED_SHORT, 0);
