@@ -1,6 +1,7 @@
 class GLCanvas {
     constructor(canvas, max_buffer_size = 1024, final_callback) {
         this.ready = false;
+        this.cam = {x: 0, y: 0};
         this.canvas = canvas;
         /* Init webgl */
         this.gl = canvas.getContext("webgl");
@@ -53,7 +54,8 @@ class GLCanvas {
                 color_loc: this.gl.getAttribLocation(shader_program, "a_color")
             },
             uniform_loc: {
-                res_loc: this.gl.getUniformLocation(shader_program, "u_res")
+                res_loc: this.gl.getUniformLocation(shader_program, "u_res"),
+                cam_loc: this.gl.getUniformLocation(shader_program, "cam_pos")
             }
         };
         this.gl.useProgram(this.program.program);
@@ -103,6 +105,11 @@ class GLCanvas {
         this.gl.bufferSubData(this.gl.ELEMENT_ARRAY_BUFFER, 0, new Uint16Array(indices_source));
     }
 
+    updateCamera(x, y){
+        this.cam.x = x;
+        this.cam.y = y;
+    }
+
     render(time) {
         window.requestAnimationFrame((time) => this.render(time), this.canvas);
         if (!this.ready){return;}
@@ -110,7 +117,8 @@ class GLCanvas {
         this.gl.viewport(0, 0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
         this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-        this.gl.uniform1f(this.program.uniform_loc.res_loc, this.canvas.width);   
+        this.gl.uniform1f(this.program.uniform_loc.res_loc, this.canvas.width);
+        this.gl.uniform2f(this.program.uniform_loc.cam_loc, this.cam.x, this.cam.y);
 
         this.gl.drawElements(this.gl.TRIANGLES, this.indices_length, this.gl.UNSIGNED_SHORT, 0);
     }
@@ -128,21 +136,3 @@ class GLCanvas {
         return shader;
     }
 }
-
-const canvas = document.getElementById("game_canvas");
-
-if (!canvas){ alert("Canvas could not be loaded"); }
-
-canvas.width = 500;
-canvas.height = 500;
-
-const gl_canvas = new GLCanvas(canvas, 1024, () => {
-    gl_canvas.render(0);
-    setTimeout(() => {
-        gl_canvas.updateBuffers([
-            0,0.5,0,1,0,0,
-            0.5,-0.5,0,0,1,0,
-            -0.5,-0.5,0,0,0,1
-        ], [0, 1, 2]);
-    }, 1000);
-});
