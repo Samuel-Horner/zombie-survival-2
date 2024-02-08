@@ -13,7 +13,7 @@ float gold_noise(in vec2 xy, in float seed){
 
 vec3 grain(in vec3 col, in float intensity, in vec2 xy) {
     intensity = intensity * intensity * intensity;
-    intensity = intensity * 2.;
+    intensity = intensity * 3.;
     return col * ((1.-intensity) + (intensity) * gold_noise(xy, max(fract(u_time),0.1)));
 }
 

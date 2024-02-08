@@ -22,3 +22,16 @@ body {
 #debug {
     position: absolute;
 }
+
+#game_over {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 30%;
+    color: red;
+}
+
+#game_over_text {
+    position: relative;
+    left: -50%;
+}
