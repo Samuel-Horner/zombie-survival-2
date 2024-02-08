@@ -2,6 +2,7 @@ class GLCanvas {
     constructor(canvas, max_buffer_size = 1024, final_callback) {
         this.ready = false;
         this.cam = {x: 0, y: 0};
+        this.mouse = {x: 0, y: 0};
         this.canvas = canvas;
         /* Init webgl */
         this.gl = canvas.getContext("webgl");
@@ -10,9 +11,14 @@ class GLCanvas {
             return;
         }
         this.gl.viewport(0,0, this.gl.drawingBufferWidth, this.gl.drawingBufferHeight);
-        this.gl.clearColor(1.0, 0.5, 1.0, 1.0);
+        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
         
         this.max_buffer = max_buffer_size;
+
+        let local_obj = this;
+        this.canvas.addEventListener("mousemove", function(event){
+            local_obj.updateMousePos(event);
+        });
 
         /* Load Shaders */
         /* This will also call initBuffers() once the program is initialised. */
@@ -56,7 +62,8 @@ class GLCanvas {
             uniform_loc: {
                 res_loc: this.gl.getUniformLocation(shader_program, "u_res"),
                 cam_loc: this.gl.getUniformLocation(shader_program, "cam_pos"),
-                time_loc: this.gl.getUniformLocation(shader_program, "u_time")
+                time_loc: this.gl.getUniformLocation(shader_program, "u_time"),
+                mouse_loc: this.gl.getUniformLocation(shader_program, "u_mouse")
             }
         };
         this.gl.useProgram(this.program.program);
@@ -67,13 +74,10 @@ class GLCanvas {
         this.vert_buffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.vert_buffer);
         this.gl.bufferData(this.gl.ARRAY_BUFFER, this.max_buffer, this.gl.DYNAMIC_DRAW);
-        // this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array([0,0.5,0,1,0,0,0.5,-0.5,0,0,1,0,-0.5,-0.5,0,0,0,1]), this.gl.DYNAMIC_DRAW);
 
         this.indices_buffer = this.gl.createBuffer();
         this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.indices_buffer);
         this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, this.max_buffer, this.gl.DYNAMIC_DRAW);
-        // this.gl.bufferData(this.gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0,1,2]), this.gl.DYNAMIC_DRAW);
-
 
         this.gl.vertexAttribPointer(
             this.program.attrib_loc.vertex_loc,
@@ -111,6 +115,13 @@ class GLCanvas {
         this.cam.y = y;
     }
 
+    updateMousePos(event) {
+        const rect = canvas.getBoundingClientRect();
+        function clamp(num, min, max) {return Math.min(Math.max(num,min),max);}
+        this.mouse.x = clamp((event.clientX - rect.left) / rect.width, 0, 1);
+        this.mouse.y = clamp((rect.height - (event.clientY - rect.top)) / rect.height, 0, 1);
+    }
+
     render(time) {
         window.requestAnimationFrame((time) => this.render(time), this.canvas);
         if (!this.ready){return;}
@@ -121,6 +132,7 @@ class GLCanvas {
         this.gl.uniform1f(this.program.uniform_loc.res_loc, this.canvas.width);
         this.gl.uniform1f(this.program.uniform_loc.time_loc, time);
         this.gl.uniform2f(this.program.uniform_loc.cam_loc, this.cam.x, this.cam.y);
+        this.gl.uniform2f(this.program.uniform_loc.mouse_loc, this.mouse.x, this.mouse.y);
 
         this.gl.drawElements(this.gl.TRIANGLES, this.indices_length, this.gl.UNSIGNED_SHORT, 0);
     }

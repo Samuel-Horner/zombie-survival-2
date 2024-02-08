@@ -86,6 +86,14 @@ class Quad extends Entity {
     }
 }
 
+class Particle extends Quad {
+    constructor(size, x, y, color, time, collision) {
+        super(size, [color], collision);
+        this.set_pos(x, y);
+        this.time = time;
+    }
+}
+
 class Wall extends Quad {
     constructor(scale, x_pos, y_pos, color){
         super(scale, [color], true);
@@ -94,17 +102,27 @@ class Wall extends Quad {
     }
 }
 
+class Sword extends Particle {
+    constructor(size, x, y){
+        super(size, x, y, [0., 0., 1.], 10, true);
+    }
+}
+
 class Player extends Quad {
     constructor() {
         super(0.1, [[1,0,0]], true);
         this.speed = 0.05;
+        this.direction = {x: 0, y: 0};
+        this.attack_cd = 0;
+        this.dir_indicator = new Quad(0.01, [[0,0,1]], false);
     }
-
+    
     movement(){
         if (keys.w){ this.move(0, 1); }
         if (keys.a){ this.move(-1, 0); }
         if (keys.s){ this.move(0, -1); }
         if (keys.d){ this.move(1, 0); }
+        if (keys.space){ this.attack(0,0); }
     }
 
     check_wall_collision(){
@@ -119,7 +137,16 @@ class Player extends Quad {
         return false;
     }
 
+    get_indices(mesh_length) {
+        return super.get_indices(mesh_length).concat(this.dir_indicator.get_indices(mesh_length));
+    }
+    get_verts() {
+        return super.get_verts().concat(this.dir_indicator.get_verts());
+    }
+
     move(x, y){
+        this.direction = {x: x, y: y};
+        this.dir_indicator.set_pos(this.x + this.direction.x * 0.1, this.y + this.direction.y * 0.1);
         let dx = x * this.speed;
         let dy = y * this.speed;
 
@@ -142,6 +169,15 @@ class Player extends Quad {
             }
         }
         gl_canvas.updateCamera(this.x, this.y);
+    }
+
+    attack(x, y) {
+        if (x != 0) {this.direction.x = x;}
+        if (y != 0) {this.direction.y = y;}
+        if (this.attack_cd > 0) {return;}
+        console.log(this.direction);
+        particles.push(new Sword(0.2, this.x + this.direction.x * 0.2, this.y + this.direction.y * 0.2));
+        this.attack_cd = 20;
     }
 }
 
@@ -211,7 +247,7 @@ class Maze {
         this.grid.forEach((row, y) => {
             row.forEach((c, x) => {
                 if (c.wall){
-                    let wall = new Wall(1, this.size - (2 * x) - 1, this.size - (2 * y) - 1, [0.12, 0.13, 0.13]);
+                    let wall = new Wall(maze_scale, this.size * maze_scale - (2 * x * maze_scale) - 1, this.size * maze_scale - (2 * y * maze_scale) - 1, [0.12, 0.13, 0.13]);
                     output.push(wall);
                 }
             })
@@ -233,7 +269,7 @@ const gl_canvas = new GLCanvas(canvas, 1024 * 1024, () => {
     loop(performance.now());
 });
 
-let keys = {w: false, a: false, s: false, d: false};
+let keys = {w: false, a: false, s: false, d: false, space: false};
 
 document.addEventListener("keydown", (event) => {
     if (event.key === "w"){
@@ -244,6 +280,8 @@ document.addEventListener("keydown", (event) => {
         keys.s = true;
     } else if (event.key === "d"){
         keys.d = true;
+    } else if (event.key === " "){
+        keys.space = true;
     }
 }); 
 document.addEventListener("keyup", (event) => {
@@ -255,23 +293,37 @@ document.addEventListener("keyup", (event) => {
         keys.s = false;
     } else if (event.key === "d"){
         keys.d = false;
+    } else if (event.key === " "){
+        keys.space = false;
     }
 })// Handles Keypresses
 
-let player = new Player();
+const maze_scale = 1;
 
 let maze = new Maze(9);
 maze.generate();
 
-let entities = [new Quad(9, [[0.32,0.38,0.42]], true)].concat(maze.generate_wall_list());
+let entities = [new Quad(maze_scale * maze.size, [[0.32,0.38,0.42]], true)].concat(maze.generate_wall_list());
+let player = new Player();
+let particles = [];
 
 function updateWorldMesh(){
     let worldMesh = [];
-    let worldIndex = []
+    let worldIndex = [];
     entities.forEach(e => {
         worldIndex = worldIndex.concat(e.get_indices(worldMesh.length / 6));
         worldMesh = worldMesh.concat(e.get_verts());
     });
+    let newParticles = [];
+    particles.forEach(e => {
+        e.time -= 1;
+        if (e.time > 0) { newParticles.push(e); }
+    });
+    particles = newParticles;
+    particles.forEach(e => {
+        worldIndex = worldIndex.concat(e.get_indices(worldMesh.length / 6));
+        worldMesh = worldMesh.concat(e.get_verts());
+    })
     worldIndex = worldIndex.concat(player.get_indices((worldMesh.length / 6)));
     worldMesh = worldMesh.concat(player.get_verts());
 
@@ -296,6 +348,7 @@ function loop(time){
     frameCount += 1;
 
     player.movement();
+    player.attack_cd = Math.max(0, player.attack_cd - 1);
 
     updateWorldMesh();
 }
