@@ -456,7 +456,7 @@ function loop(time){
         if (wave > 100){wave = 100;}
         zom_count = Math.floor(Math.sqrt(wave));
         for (let i = 0; i < zom_count; i++) {
-            if (zombies.length >= 200) {continue;}
+            if (zombies.length >= 100) {continue;}
             let spawn_point = {x: player.x, y: player.y};
             while ((spawn_point.x - player.x) * (spawn_point.x - player.x) + (spawn_point.y - player.y) * (spawn_point.y - player.y) <= 1){
                 spawn_point = spawners[Math.floor(Math.random() * spawners.length)];
